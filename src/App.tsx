@@ -196,19 +196,18 @@ export default function App() {
 
   // Auto-seed if empty
   useEffect(() => {
-    const isAdminEmail = user?.email === "Nathaly1987Palacios@gmail.com";
-    if (isAuthReady && user && isAdminEmail && products.length === 0 && !loading) {
+    if (isAuthReady && products.length === 0 && !loading) {
       seedInitialData();
     }
     if (isAuthReady && products.length > 0) {
       // Initialize consecutive with products length if it's 0
       setConsecutive(prev => prev === 0 ? products.length : prev);
     }
-  }, [isAuthReady, user, products.length, loading]);
+  }, [isAuthReady, products.length, loading]);
 
   // Data Listeners
   useEffect(() => {
-    if (!isAuthReady || !user) return;
+    if (!isAuthReady) return;
 
     const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const prods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
@@ -225,7 +224,7 @@ export default function App() {
       productsUnsubscribe();
       movementsUnsubscribe();
     };
-  }, [isAuthReady, user]);
+  }, [isAuthReady]);
 
   const handleLogin = async (providerType: 'google' | 'facebook') => {
     const provider = providerType === 'google' 
@@ -317,8 +316,6 @@ export default function App() {
   };
 
   const seedInitialData = async () => {
-    if (!user || user.email !== "Nathaly1987Palacios@gmail.com") return;
-    
     const initialProducts = [
       { 
         id: 'csr2', 
@@ -583,44 +580,6 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center p-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-surface-container p-10 rounded-xl border border-white/5 text-center"
-        >
-          <h1 className="text-primary-container font-black tracking-tighter text-3xl uppercase mb-2">COMODIDA SOBRE RUEDAS</h1>
-          <p className="font-headline text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-8">ENVIOS A TODO COLOMBIA</p>
-          
-          <div className="flex flex-col gap-3">
-            <button 
-              onClick={() => handleLogin('google')}
-              className="w-full primary-gradient text-on-primary-fixed font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
-            >
-              <UserIcon className="w-5 h-5" />
-              <span className="font-headline text-sm uppercase tracking-widest">Google</span>
-            </button>
-
-            <button 
-              onClick={() => handleLogin('facebook')}
-              className="w-full bg-[#1877F2] text-white font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
-            >
-              <Facebook className="w-5 h-5" />
-              <span className="font-headline text-sm uppercase tracking-widest">Facebook</span>
-            </button>
-          </div>
-          
-          <p className="mt-8 text-xs text-secondary/50 leading-relaxed">
-            Acceso restringido a personal autorizado de <br />
-            <span className="text-secondary">David Palacios Alforjas</span>
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen bg-surface">
       {/* Share Modal */}
@@ -708,34 +667,10 @@ export default function App() {
           />
         </nav>
 
-        <div className="px-6 py-8 space-y-2">
-          <button 
-            onClick={() => handleLogin('google')}
-            className="w-full primary-gradient text-on-primary-fixed font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="font-headline text-sm uppercase font-bold tracking-tight">Registro Google</span>
-          </button>
-          <button 
-            onClick={() => handleLogin('facebook')}
-            className="w-full bg-[#1877F2] text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="font-headline text-sm uppercase font-bold tracking-tight">Registro Facebook</span>
-          </button>
-        </div>
-
         <div className="border-t border-white/5 mt-auto py-6">
           <button className="w-full flex items-center gap-3 px-6 py-3 text-secondary hover:text-white transition-all">
             <Settings className="w-5 h-5" />
             <span className="font-headline text-sm uppercase font-bold tracking-tight">Configuración</span>
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-6 py-3 text-secondary hover:text-white transition-all"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="font-headline text-sm uppercase font-bold tracking-tight">Cerrar Sesión</span>
           </button>
         </div>
       </aside>
@@ -772,8 +707,8 @@ export default function App() {
             </button>
             <div className="flex items-center gap-3 text-gray-400">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium hidden lg:block">{user.displayName}</span>
-                <UserIcon className="w-5 h-5 cursor-pointer hover:text-white transition-colors" />
+                <span className="text-xs font-medium hidden lg:block">Sistema de Inventario</span>
+                <UserIcon className="w-5 h-5" />
               </div>
             </div>
           </div>
