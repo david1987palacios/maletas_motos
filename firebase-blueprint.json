@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A motorcycle pannier or accessory in inventory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique SKU or ID" },
+        "name": { "type": "string", "description": "Descriptive name" },
+        "price": { "type": "number", "description": "Sale price in COP" },
+        "stock": { "type": "number", "description": "Current available units" },
+        "sku": { "type": "string", "description": "Technical identifier" },
+        "imageUrl": { "type": "string", "description": "URL of the product image" },
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "l": { "type": "number" },
+            "w": { "type": "number" },
+            "h": { "type": "number" }
+          }
+        }
+      },
+      "required": ["id", "name", "price", "stock"]
+    },
+    "Movement": {
+      "title": "Movement",
+      "description": "A stock entry or exit record.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "description": "ID of the affected product" },
+        "type": { "type": "string", "enum": ["in", "out"], "description": "Entry or Exit" },
+        "quantity": { "type": "number", "description": "Amount of units" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When it happened" },
+        "userEmail": { "type": "string", "description": "Who performed the action" }
+      },
+      "required": ["productId", "type", "quantity", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of all panniers and accessories."
+    },
+    "/movements/{movementId}": {
+      "schema": "Movement",
+      "description": "Log of all stock changes."
+    }
+  }
+}

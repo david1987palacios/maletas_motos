@@ -1,0 +1,88 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: products
+// Document ID: {productId}
+// Fields:
+//   - id: string (required) - Unique SKU
+//   - name: string (required) - Product name
+//   - price: number (required) - Price in COP
+//   - stock: number (required) - Current stock
+//   - sku: string (optional) - Technical SKU
+//   - imageUrl: string (optional) - Product image URL
+//   - dimensions: map (optional) - L, W, H dimensions
+//
+// Collection: movements
+// Document ID: {movementId}
+// Fields:
+//   - productId: string (required) - Product ID
+//   - type: string (required, enum: ['in', 'out']) - Movement type
+//   - quantity: number (required) - Quantity
+//   - timestamp: timestamp (required) - When recorded
+//   - userEmail: string (optional) - User who recorded it
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == "Nathaly1987Palacios@gmail.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['id', 'name', 'price', 'stock']) &&
+             data.id is string && data.name is string &&
+             data.price is number && data.price >= 0 &&
+             data.stock is number;
+    }
+
+    function isStockUpdateOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']) &&
+             request.resource.data.stock is number;
+    }
+
+    function isValidMovement(data) {
+      return data.keys().hasAll(['productId', 'type', 'quantity', 'timestamp']) &&
+             data.productId is string &&
+             data.type in ['in', 'out'] &&
+             data.quantity is number && data.quantity > 0 &&
+             data.timestamp is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /products/{productId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() && isValidProduct(request.resource.data);
+      allow update: if (isAdmin() && isValidProduct(request.resource.data)) || 
+                      (isAuthenticated() && isStockUpdateOnly());
+      allow delete: if isAdmin();
+    }
+
+    match /movements/{movementId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidMovement(request.resource.data);
+      allow update, delete: if false; // Movements are immutable logs
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if false; // Managed by admin or backend
+    }
+  }
+}
