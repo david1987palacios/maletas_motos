@@ -63,23 +63,26 @@ service cloud.firestore {
     // ===============================================================
 
     match /products/{productId} {
-      allow read: if isAuthenticated();
-      allow create: if isAdmin() && isValidProduct(request.resource.data);
-      allow update: if (isAdmin() && isValidProduct(request.resource.data)) || 
-                      (isAuthenticated() && isStockUpdateOnly());
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow create, update, delete: if true;
     }
 
     match /movements/{movementId} {
+<<<<<<< HEAD
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidMovement(request.resource.data);
       allow update: if false;
       allow delete: if isAuthenticated();
+=======
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false; // Movements remain immutable logs
+>>>>>>> ef8d12cc00fccbc6d47bb298d49b1e2705a34142
     }
 
     match /users/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
-      allow write: if false; // Managed by admin or backend
+      allow write: if false;
     }
   }
 }

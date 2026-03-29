@@ -153,9 +153,24 @@ export default function App() {
 
   // Data Fetching & Realtime
   useEffect(() => {
+<<<<<<< HEAD
     if (!isAuthReady || (!user && !isGuest)) return;
 
     fetchData();
+=======
+    if (isAuthReady && products.length === 0 && !loading) {
+      seedInitialData();
+    }
+    if (isAuthReady && products.length > 0) {
+      // Initialize consecutive with products length if it's 0
+      setConsecutive(prev => prev === 0 ? products.length : prev);
+    }
+  }, [isAuthReady, products.length, loading]);
+
+  // Data Listeners
+  useEffect(() => {
+    if (!isAuthReady) return;
+>>>>>>> ef8d12cc00fccbc6d47bb298d49b1e2705a34142
 
     // Listen to changes on products
     const productsSub = supabase.channel('public:products')
@@ -171,7 +186,11 @@ export default function App() {
       supabase.removeChannel(productsSub);
       supabase.removeChannel(movementsSub);
     };
+<<<<<<< HEAD
   }, [isAuthReady, user, isGuest]);
+=======
+  }, [isAuthReady]);
+>>>>>>> ef8d12cc00fccbc6d47bb298d49b1e2705a34142
 
   const fetchData = async () => {
     const { data: prods, error: pError } = await supabase.from('products').select('*');
@@ -312,6 +331,230 @@ export default function App() {
     }
   };
 
+<<<<<<< HEAD
+=======
+  const seedInitialData = async () => {
+    const initialProducts = [
+      { 
+        id: 'csr2', 
+        sku: 'CSR-ALU-45L', 
+        name: 'Maleta Aluminio Lateral 45L', 
+        description: 'Capacidad extendida de 45 litros, acabado en negro mate, cierres de seguridad reforzados.',
+        price: 850000, 
+        stock: 8, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr3', 
+        sku: 'CSR-TOP-48L', 
+        name: 'Top Case Aluminio 48L', 
+        description: 'Maleta superior de 48 litros, cabe un casco modular, incluye base universal.',
+        price: 950000, 
+        stock: 5, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981424-8612fce75d49?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr4', 
+        sku: 'CSR-TOP-55L', 
+        name: 'Top Case Aluminio 55L', 
+        description: 'Máxima capacidad (55L), espacio para dos cascos, diseño aerodinámico.',
+        price: 1100000, 
+        stock: 4, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981285-6f0c94958bb6?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr5', 
+        sku: 'CSR-TEX-20L', 
+        name: 'Alforja Textil Impermeable 20L', 
+        description: 'Material 100% impermeable, sistema de anclaje rápido, 20 litros por lado.',
+        price: 350000, 
+        stock: 15, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981359-219d6364c9c8?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr6', 
+        sku: 'CSR-TEX-30L', 
+        name: 'Alforja Textil Impermeable 30L', 
+        description: 'Diseño robusto de 30 litros, múltiples compartimentos, ideal para off-road.',
+        price: 450000, 
+        stock: 12, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981408-db0ecd8a1ee4?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr7', 
+        sku: 'CSR-TANK-15L', 
+        name: 'Maleta de Tanque Pro 15L', 
+        description: 'Sistema de anillo rápido, ventana para smartphone, expandible a 15 litros.',
+        price: 280000, 
+        stock: 20, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981403-c5f91bbde3c0?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr8', 
+        sku: 'CSR-DRY-40L', 
+        name: 'Dry Bag Expedition 40L', 
+        description: 'Bolso cilíndrico 100% estanco, 40 litros, correas de sujeción incluidas.',
+        price: 220000, 
+        stock: 25, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr9', 
+        sku: 'CSR-DRY-60L', 
+        name: 'Dry Bag Expedition 60L', 
+        description: 'Capacidad de 60 litros para expediciones extremas, material PVC de alta densidad.',
+        price: 320000, 
+        stock: 18, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981424-8612fce75d49?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr10', 
+        sku: 'CSR-ACC-SUP', 
+        name: 'Soporte Universal Maletas', 
+        description: 'Estructura de acero reforzado, compatible con la mayoría de motos del mercado.',
+        price: 180000, 
+        stock: 30, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981285-6f0c94958bb6?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr11', 
+        sku: 'CSR-ALU-SLIM', 
+        name: 'Maleta Aluminio Slim 28L', 
+        description: 'Diseño ultra-delgado para ciudad, 28 litros, no afecta la aerodinámica.',
+        price: 680000, 
+        stock: 6, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981359-219d6364c9c8?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr12', 
+        sku: 'CSR-SOFT-10L', 
+        name: 'Bolso Soft Tail 10L', 
+        description: 'Bolso compacto para el asiento trasero, ideal para herramientas o kit de lluvia.',
+        price: 150000, 
+        stock: 22, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981408-db0ecd8a1ee4?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr13', 
+        sku: 'CSR-TOOL-BOX', 
+        name: 'Caja de Herramientas Aluminio', 
+        description: 'Se instala en el soporte de maletas, cierre con llave, resistente al agua.',
+        price: 250000, 
+        stock: 14, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981403-c5f91bbde3c0?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr14', 
+        sku: 'CSR-NET-ELAS', 
+        name: 'Red Elástica de Carga', 
+        description: 'Ganchos recubiertos, alta elasticidad, asegura cascos o equipaje ligero.',
+        price: 45000, 
+        stock: 50, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr15', 
+        sku: 'CSR-BACK-REST', 
+        name: 'Respaldo para Top Case', 
+        description: 'Acolchado ergonómico para el pasajero, fácil instalación con adhesivo 3M.',
+        price: 120000, 
+        stock: 10, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981424-8612fce75d49?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr16', 
+        sku: 'CSR-INNER-BAG', 
+        name: 'Bolsa Interna Impermeable', 
+        description: 'Diseñada para maletas de 35L/45L, facilita el transporte del equipaje.',
+        price: 95000, 
+        stock: 40, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981285-6f0c94958bb6?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr17', 
+        sku: 'CSR-LOCK-SET', 
+        name: 'Juego de Chapas Seguridad', 
+        description: 'Kit de 3 cilindros con la misma llave para todas tus maletas CSR.',
+        price: 150000, 
+        stock: 15, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981359-219d6364c9c8?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr18', 
+        sku: 'CSR-PHON-SUP', 
+        name: 'Soporte Celular Anti-Vibración', 
+        description: 'Carga inalámbrica integrada, rotación 360, compatible con pantallas grandes.',
+        price: 185000, 
+        stock: 25, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981408-db0ecd8a1ee4?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr19', 
+        sku: 'CSR-CLEAN-KIT', 
+        name: 'Kit de Limpieza para Maletas', 
+        description: 'Incluye spray protector de aluminio, paño de microfibra y cepillo de cerdas suaves.',
+        price: 65000, 
+        stock: 30, 
+        imageUrl: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr20', 
+        sku: 'CSR-TANK-BAG', 
+        name: 'Bolsa de Tanque Magnética', 
+        description: 'Capacidad 15L, base magnética de alta potencia, visor para celular táctil.',
+        price: 220000, 
+        stock: 12, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981403-c5f91bbde3c0?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr21', 
+        sku: 'CSR-COV-PRO', 
+        name: 'Pijama Protectora Impermeable', 
+        description: 'Tela de alta resistencia, protección UV, orificios para candado y ajuste elástico.',
+        price: 135000, 
+        stock: 45, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr22', 
+        sku: 'CSR-LUG-STRAP', 
+        name: 'Correas de Amarre Reforzadas', 
+        description: 'Par de correas de 2 metros, hebillas metálicas, ideales para maletas blandas.',
+        price: 55000, 
+        stock: 60, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981424-8612fce75d49?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr23', 
+        sku: 'CSR-VIS-CLEAN', 
+        name: 'Limpiador de Visores y Cascos', 
+        description: 'Fórmula anti-empañante, remueve insectos y grasa sin rayar la superficie.',
+        price: 35000, 
+        stock: 100, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981285-6f0c94958bb6?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+      { 
+        id: 'csr24', 
+        sku: 'CSR-EXT-FOOT', 
+        name: 'Extensión de Pata Lateral', 
+        description: 'Base de aluminio CNC, mayor superficie de apoyo en terrenos blandos o arena.',
+        price: 85000, 
+        stock: 18, 
+        imageUrl: 'https://images.unsplash.com/photo-1558981359-219d6364c9c8?q=80&w=400&h=400&auto=format&fit=crop' 
+      },
+    ];
+
+    try {
+      for (const p of initialProducts) {
+        await setDoc(doc(db, 'products', p.id), p);
+      }
+      alert("Inventario de 25 productos actualizado correctamente.");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'products');
+    }
+  };
+
+>>>>>>> ef8d12cc00fccbc6d47bb298d49b1e2705a34142
   const handleShare = (platform: string) => {
     const url = window.location.href;
     const text = encodeURIComponent("¡Mira el inventario de COMODIDA SOBRE RUEDAS!");
@@ -359,6 +602,7 @@ export default function App() {
     );
   }
 
+<<<<<<< HEAD
   if (!user && !isGuest) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-6">
@@ -446,6 +690,8 @@ export default function App() {
     );
   }
 
+=======
+>>>>>>> ef8d12cc00fccbc6d47bb298d49b1e2705a34142
   return (
     <div className="flex min-h-screen bg-surface">
       {/* Share Modal */}
@@ -606,13 +852,6 @@ export default function App() {
             <Settings className="w-5 h-5" />
             <span className="font-headline text-sm uppercase font-bold tracking-tight">Configuración</span>
           </button>
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-6 py-3 text-secondary hover:text-white transition-all"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="font-headline text-sm uppercase font-bold tracking-tight">Cerrar Sesión</span>
-          </button>
         </div>
       </aside>
 
@@ -652,8 +891,13 @@ export default function App() {
             </button>
             <div className="flex items-center gap-3 text-gray-400">
               <div className="flex items-center gap-2">
+<<<<<<< HEAD
                 <span className="text-xs font-medium hidden lg:block">{user?.email || 'Invitado'}</span>
                 <UserIcon className="w-5 h-5 cursor-pointer hover:text-white transition-colors" />
+=======
+                <span className="text-xs font-medium hidden lg:block">Sistema de Inventario</span>
+                <UserIcon className="w-5 h-5" />
+>>>>>>> ef8d12cc00fccbc6d47bb298d49b1e2705a34142
               </div>
             </div>
           </div>
