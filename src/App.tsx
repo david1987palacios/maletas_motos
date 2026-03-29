@@ -153,7 +153,7 @@ export default function App() {
 
   // Data Fetching & Realtime
   useEffect(() => {
-    if (!isAuthReady || !user) return;
+    if (!isAuthReady || (!user && !isGuest)) return;
 
     fetchData();
 
@@ -171,7 +171,7 @@ export default function App() {
       supabase.removeChannel(productsSub);
       supabase.removeChannel(movementsSub);
     };
-  }, [isAuthReady, user]);
+  }, [isAuthReady, user, isGuest]);
 
   const fetchData = async () => {
     const { data: prods, error: pError } = await supabase.from('products').select('*');
