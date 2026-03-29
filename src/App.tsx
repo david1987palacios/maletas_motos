@@ -132,6 +132,7 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   // Auth Listener
   useEffect(() => {
@@ -354,7 +355,7 @@ export default function App() {
     );
   }
 
-  if (!user) {
+  if (!user && !isGuest) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-6">
         <motion.div 
@@ -421,6 +422,14 @@ export default function App() {
             >
               <Facebook className="w-4 h-4" />
               <span className="font-headline text-xs uppercase tracking-widest">Facebook</span>
+            </button>
+
+            <button 
+              onClick={() => setIsGuest(true)}
+              className="w-full bg-white/5 border border-white/10 text-white hover:bg-white/10 font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-3 active:scale-95 transition-all mt-2"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              <span className="font-headline text-xs uppercase tracking-widest">Entrar sin cuenta</span>
             </button>
           </div>
           
@@ -639,7 +648,7 @@ export default function App() {
             </button>
             <div className="flex items-center gap-3 text-gray-400">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium hidden lg:block">{user.email}</span>
+                <span className="text-xs font-medium hidden lg:block">{user?.email || 'Invitado'}</span>
                 <UserIcon className="w-5 h-5 cursor-pointer hover:text-white transition-colors" />
               </div>
             </div>
