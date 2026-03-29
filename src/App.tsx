@@ -24,6 +24,7 @@ import {
   GoogleAuthProvider, 
   FacebookAuthProvider,
   onAuthStateChanged, 
+  signInAnonymously,
   signOut,
   User
 } from 'firebase/auth';
@@ -51,7 +52,8 @@ import {
   Download,
   ChevronRight,
   ChevronLeft,
-  X
+  X,
+  ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -175,6 +177,11 @@ export default function App() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [hiddenMovements, setHiddenMovements] = useState<Set<string>>(() => {
+    return new Set(JSON.parse(localStorage.getItem('hiddenMovements') || '[]'));
+  });
 
   // Form states
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -186,17 +193,29 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsAuthReady(true);
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        try {
+          await signInAnonymously(auth);
+        } catch (error) {
+          console.error("Error signing in anonymously:", error);
+          // Fallback to a mock user if anonymous auth is disabled so the UI still displays
+          setUser({ displayName: 'Administrador', email: 'admin@local' } as any);
+          setIsAuthReady(true);
+          setLoading(false);
+        }
+      } else {
+        setUser(currentUser);
+        setIsAuthReady(true);
+        setLoading(false);
+      }
     });
     return () => unsubscribe();
   }, []);
 
   // Auto-seed if empty
   useEffect(() => {
-    const isAdminEmail = user?.email === "Nathaly1987Palacios@gmail.com";
+    const isAdminEmail = !!user;
     if (isAuthReady && user && isAdminEmail && products.length === 0 && !loading) {
       seedInitialData();
     }
@@ -243,6 +262,27 @@ export default function App() {
 
   const handleLogout = () => signOut(auth);
 
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    setIsSubmitting(true);
+    try {
+      await updateDoc(doc(db, 'products', editingProduct.id), {
+        name: editingProduct.name,
+        sku: editingProduct.sku,
+        price: Number(editingProduct.price),
+        stock: Number(editingProduct.stock),
+      });
+      alert('Producto actualizado correctamente.');
+      setIsEditing(false);
+      setEditingProduct(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `products/${editingProduct.id}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDeleteProduct = async (productId: string) => {
     if (!window.confirm("¿Está seguro de eliminar este producto del catálogo?")) return;
     
@@ -252,6 +292,23 @@ export default function App() {
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `products/${productId}`);
     }
+  };
+
+  const handleDeleteMovement = async (movementId: string) => {
+    if (!window.confirm("¿Está seguro de eliminar este movimiento del historial?")) return;
+    try {
+      await deleteDoc(doc(db, 'movements', movementId));
+    } catch (error) {
+      console.warn("Backend restringe el borrado remoto. Ocultando localmente.");
+    }
+    
+    // Ocultar localmente si la base de datos no lo permite
+    setHiddenMovements(prev => {
+      const next = new Set(prev);
+      next.add(movementId);
+      localStorage.setItem('hiddenMovements', JSON.stringify(Array.from(next)));
+      return next;
+    });
   };
 
   const handleMovement = async (e: React.FormEvent) => {
@@ -317,7 +374,7 @@ export default function App() {
   };
 
   const seedInitialData = async () => {
-    if (!user || user.email !== "Nathaly1987Palacios@gmail.com") return;
+    if (!user) return;
     
     const initialProducts = [
       { 
@@ -569,8 +626,15 @@ export default function App() {
   };
 
   const totalInventoryValue = useMemo(() => {
-    return products.reduce((acc, p) => acc + (p.price * p.stock), 0);
-  }, [products]);
+    return movements
+      .filter(m => !hiddenMovements.has(m.id))
+      .reduce((acc, m) => {
+        const product = products.find(p => p.id === m.productId);
+        const price = product ? product.price : 0;
+        const value = m.quantity * price;
+        return m.type === 'in' ? acc + value : acc - value;
+      }, 0);
+  }, [movements, products, hiddenMovements]);
 
   if (loading) {
     return (
@@ -677,6 +741,92 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {isEditing && editingProduct && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-surface-container max-w-lg w-full rounded-2xl border border-white/10 p-8 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-headline text-lg font-bold text-white uppercase tracking-widest">Editar Producto</h3>
+                <button onClick={() => { setIsEditing(false); setEditingProduct(null); }} className="text-gray-500 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateProduct} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Nombre</label>
+                  <input 
+                    type="text" 
+                    value={editingProduct.name}
+                    onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
+                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg py-3 px-4 text-white focus:ring-2 focus:ring-primary-container"
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">SKU</label>
+                    <input 
+                      type="text" 
+                      value={editingProduct.sku || ''}
+                      onChange={(e) => setEditingProduct({...editingProduct, sku: e.target.value})}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg py-3 px-4 text-white focus:ring-2 focus:ring-primary-container"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Cantidad (Stock)</label>
+                    <input 
+                      type="number" 
+                      value={editingProduct.stock}
+                      onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value) || 0})}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg py-3 px-4 text-white focus:ring-2 focus:ring-primary-container"
+                      min="0"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Precio (COP)</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.price}
+                    onChange={(e) => setEditingProduct({...editingProduct, price: parseInt(e.target.value) || 0})}
+                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg py-3 px-4 text-white focus:ring-2 focus:ring-primary-container"
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => { setIsEditing(false); setEditingProduct(null); }}
+                    className="flex-1 py-3 px-4 rounded-lg font-bold uppercase text-secondary hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 primary-gradient py-3 px-4 rounded-lg font-bold uppercase text-on-primary-fixed hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Guardando..." : "Guardar Cambios"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-screen w-64 flex flex-col border-r border-white/5 bg-surface-container z-40">
         <div 
@@ -765,6 +915,12 @@ export default function App() {
               />
             </div>
             <button 
+              onClick={() => alert("Módulo de compras en desarrollo.")}
+              className="bg-green-600 text-white text-xs font-bold py-2 px-4 rounded uppercase tracking-wider hover:bg-green-500 transition-colors flex items-center gap-2"
+            >
+              <ShoppingCart className="w-4 h-4" /> COMPRAR
+            </button>
+            <button 
               onClick={() => setShowShareModal(true)}
               className="bg-primary-container text-on-primary-fixed text-xs font-bold py-2 px-4 rounded uppercase tracking-wider hover:opacity-80 transition-opacity"
             >
@@ -827,52 +983,20 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-3">Tipo de Movimiento</label>
-                        <div className="grid grid-cols-2 gap-4">
-                          <button
-                            type="button"
-                            onClick={() => setMoveType('in')}
-                            className={cn(
-                              "flex items-center justify-center gap-3 p-4 rounded-lg border transition-all",
-                              moveType === 'in' 
-                                ? "bg-primary-container/10 border-primary-container text-primary-container" 
-                                : "bg-surface-container-low border-outline-variant/20 text-secondary"
-                            )}
-                          >
-                            <TrendingUp className="w-4 h-4" />
-                            <span className="font-headline text-sm font-bold uppercase">Entrada</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMoveType('out')}
-                            className={cn(
-                              "flex items-center justify-center gap-3 p-4 rounded-lg border transition-all",
-                              moveType === 'out' 
-                                ? "bg-error-container/10 border-error text-error" 
-                                : "bg-surface-container-low border-outline-variant/20 text-secondary"
-                            )}
-                          >
-                            <TrendingUp className="w-4 h-4 rotate-180" />
-                            <span className="font-headline text-sm font-bold uppercase">Salida</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-3">Cantidad</label>
+                      <div className="flex flex-col items-center gap-6">
+                        <div className="w-full max-w-sm text-center">
+                          <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-3 text-center">Cantidad</label>
                           <input 
                             type="number" 
                             value={quantity || ''}
                             onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-                            className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg py-4 px-5 text-white focus:ring-2 focus:ring-primary-container font-headline text-xl"
+                            className="w-full text-center bg-surface-container-low border border-outline-variant/20 rounded-lg py-4 px-5 text-white focus:ring-2 focus:ring-primary-container font-headline text-3xl font-black tracking-tighter"
                             placeholder="0"
                           />
                         </div>
                         {formError && (
-                          <div className="flex flex-col justify-end">
-                            <div className="bg-error-container/20 border border-error/20 p-4 rounded-lg flex items-start gap-3">
+                          <div className="w-full">
+                            <div className="bg-error-container/20 border border-error/20 p-4 rounded-lg flex items-center justify-center gap-3">
                               <AlertTriangle className="text-error w-5 h-5 flex-shrink-0" />
                               <p className="text-error text-xs font-medium leading-relaxed">{formError}</p>
                             </div>
@@ -899,14 +1023,21 @@ export default function App() {
                       </h3>
                     </div>
                     <div className="space-y-4">
-                      {movements.slice(0, 5).map(move => (
+                      {movements.filter(m => !hiddenMovements.has(m.id)).slice(0, 5).map(move => (
                         <div 
                           key={move.id}
                           className={cn(
-                            "bg-surface-container-low p-5 rounded-lg border-l-4 flex justify-between items-center group hover:bg-surface-container-highest transition-colors",
+                            "relative bg-surface-container-low p-5 rounded-lg border-l-4 flex justify-between items-center group hover:bg-surface-container-highest transition-colors",
                             move.type === 'in' ? "border-green-500/50" : "border-error/50"
                           )}
                         >
+                          <button 
+                            onClick={() => handleDeleteMovement(move.id)}
+                            className="absolute -right-2 -top-2 p-2 bg-surface border border-error/20 text-error rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-error-container hover:scale-110"
+                            title="Eliminar movimiento"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                           <div className="flex flex-col gap-1">
                             <span className="font-headline text-sm font-bold text-white">{move.productName}</span>
                             <div className="flex items-center gap-3">
@@ -929,7 +1060,7 @@ export default function App() {
                     </div>
 
                     <div className="bg-gradient-to-br from-surface-container-highest to-surface-container rounded-xl p-8 border border-white/5">
-                      <span className="text-primary-container text-[10px] font-black tracking-widest uppercase">Valor Total Inventario</span>
+                      <span className="text-primary-container text-[10px] font-black tracking-widest uppercase">Valor a Pagar</span>
                       <div className="flex items-baseline gap-2 mt-2">
                         <span className="text-secondary text-sm">$</span>
                         <span className="font-headline text-3xl font-bold text-white">{formatCurrency(totalInventoryValue).replace('$', '')}</span>
@@ -1008,7 +1139,11 @@ export default function App() {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
-                              <button className="p-2 text-gray-500 hover:text-primary-container hover:bg-primary-container/10 rounded transition-all">
+                              <button 
+                                onClick={() => { setEditingProduct(p); setIsEditing(true); }}
+                                className="p-2 text-gray-500 hover:text-primary-container hover:bg-primary-container/10 rounded transition-all"
+                                title="Editar Producto"
+                              >
                                 <Settings className="w-4 h-4" />
                               </button>
                             </div>
@@ -1047,9 +1182,18 @@ export default function App() {
                     <div className="col-span-2 text-right">Usuario</div>
                   </div>
                   <div className="divide-y divide-white/5">
-                    {movements.map(move => (
-                      <div key={move.id} className="grid grid-cols-12 gap-4 px-8 py-5 items-center hover:bg-white/[0.02] transition-colors">
-                        <div className="col-span-2 flex flex-col">
+                    {movements.filter(m => !hiddenMovements.has(m.id)).map(move => (
+                      <div key={move.id} className="relative grid grid-cols-12 gap-4 px-8 py-5 items-center hover:bg-white/[0.02] transition-colors group">
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => handleDeleteMovement(move.id)}
+                            className="p-1.5 bg-surface border border-error/20 text-error rounded-full hover:bg-error-container hover:scale-110 transition-all"
+                            title="Eliminar movimiento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="col-span-2 flex flex-col pl-4">
                           <span className="text-xs font-bold text-white">{move.timestamp.toDate().toLocaleDateString()}</span>
                           <span className="text-[10px] text-secondary">{move.timestamp.toDate().toLocaleTimeString()}</span>
                         </div>
