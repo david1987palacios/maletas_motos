@@ -123,7 +123,7 @@ export default function App() {
 
   // Form states
   const [selectedProductId, setSelectedProductId] = useState('');
-  const [moveType, setMoveType] = useState<'ENTRY' | 'DISPATCH'>('ENTRY');
+  const [moveType, setMoveType] = useState<'ENTRY' | 'DISPATCH'>('DISPATCH');
   const [quantity, setQuantity] = useState<number>(0);
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -341,8 +341,12 @@ export default function App() {
   };
 
   const totalInventoryValue = useMemo(() => {
-    return products.reduce((acc, p) => acc + (p.current_stock * p.price), 0);
-  }, [products]);
+    return movements.reduce((acc, m) => {
+      const product = products.find(p => p.id === m.product_id);
+      const price = product ? product.price : 0;
+      return acc + (m.quantity * price);
+    }, 0);
+  }, [movements, products]);
 
   if (loading) {
     return (
@@ -691,22 +695,7 @@ export default function App() {
                         </select>
                       </div>
 
-                      <div className="flex gap-4 mb-4">
-                        <button 
-                          type="button" 
-                          onClick={() => setMoveType('ENTRY')}
-                          className={cn("flex-1 py-3 font-bold text-sm tracking-widest rounded transition-all", moveType === 'ENTRY' ? "bg-green-500 text-white" : "bg-white/5 text-secondary hover:bg-white/10")}
-                        >
-                          AGREGAR (+)
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => setMoveType('DISPATCH')}
-                          className={cn("flex-1 py-3 font-bold text-sm tracking-widest rounded transition-all", moveType === 'DISPATCH' ? "bg-error text-white" : "bg-white/5 text-secondary hover:bg-white/10")}
-                        >
-                          QUITAR (-)
-                        </button>
-                      </div>
+
 
                       <div className="flex flex-col items-center gap-6">
                         <div className="w-full max-w-sm text-center">
@@ -787,7 +776,7 @@ export default function App() {
                     </div>
 
                     <div className="bg-gradient-to-br from-surface-container-highest to-surface-container rounded-xl p-8 border border-white/5">
-                      <span className="text-primary-container text-[10px] font-black tracking-widest uppercase">Valor Actual de Inventario</span>
+                      <span className="text-primary-container text-[10px] font-black tracking-widest uppercase">Sumatoria de Últimos Movimientos</span>
                       <div className="flex items-baseline gap-2 mt-2">
                         <span className="text-secondary text-sm">$</span>
                         <span className="font-headline text-3xl font-bold text-white">{formatCurrency(totalInventoryValue).replace('$', '')}</span>
